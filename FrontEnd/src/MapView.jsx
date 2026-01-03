@@ -15,6 +15,21 @@ L.Icon.Default.mergeOptions({
     shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
 });
 
+// Emoji icon for the Traffic Signal
+const signalEmoji = (state) => L.divIcon({
+    html: `<div style="font-size: 30px;">${state === "GREEN" ? "🟢" : "🔴"}</div>`,
+    className: 'dummy',
+    iconSize: [30, 30],
+    iconAnchor: [15, 15]
+});
+
+// Emoji icon for the Ambulance
+const ambulanceEmoji = L.divIcon({
+    html: `<div style="font-size: 30px;">🚑</div>`,
+    className: 'dummy',
+    iconSize: [30, 30],
+    iconAnchor: [15, 15]
+});
 
 
 function MapView() {
@@ -38,7 +53,31 @@ function MapView() {
     const [segmentIndex, setsegmentIndex] = useState(0);
     const [progress, setProgress] = useState(0);
     const [currentPosition, setCurrentPosition] = useState(route[0]);
-    const [criticality, setCriticality] = useState("Critical");
+    const [criticality, setCriticality] = useState("CRITICAL");
+    const [signalState, setsignalState] = useState("RED");
+    const signalpos = [9.9933433, 76.3017846];
+
+    const getThresholdDistance = () => {
+        if (criticality === "STABLE") return 40;
+        if (criticality === "CRITICAL") return 80;
+        if (criticality === "VERY CRITICAL") return 120;
+        return 60;
+    }
+
+    const getDistanceInMeters = (lat1, lon1, lat2, lon2) => {
+        const R = 6371000;
+        const dLat = (lat2 - lat1) * Math.PI / 180;
+        const dLon = (lon2 - lon1) * Math.PI / 180;
+
+        const a =
+            Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(lat1 * Math.PI / 180) *
+            Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLon / 2) * Math.sin(dLon / 2);
+
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return R * c;
+    };
 
 
     useEffect(() => {
@@ -48,30 +87,43 @@ function MapView() {
             const [lat2, lng2] = route[segmentIndex + 1];
 
             const newProgress = progress + speed;
+            let lat, lng;
 
             if (newProgress >= 1) {
                 if (segmentIndex < route.length - 2) {
                     setsegmentIndex(segmentIndex + 1);
                     setProgress(0);
                     setCurrentPosition(route[segmentIndex + 1]);
+                    [lat, lng] = route[segmentIndex + 1];
                 }
                 else {
                     clearInterval(interval);
+                    return;
                 }
             }
             else {
                 setProgress(newProgress);
 
-                const lat = lat1 + (lat2 - lat1) * newProgress;
-                const lng = lng1 + (lng2 - lng1) * newProgress;
+                lat = lat1 + (lat2 - lat1) * newProgress;
+                lng = lng1 + (lng2 - lng1) * newProgress;
 
                 setCurrentPosition([lat, lng]);
             }
 
+            const distanceToSignal = getDistanceInMeters(lat, lng, signalpos[0], signalpos[1]);
+
+            const threshold = getThresholdDistance();
+
+            if (distanceToSignal <= threshold) {
+                setsignalState("GREEN");
+            }
+            else {
+                setsignalState("RED");
+            }
         }, 100);
 
         return () => clearInterval(interval);
-    }, [segmentIndex, progress]);
+    }, [segmentIndex, progress, criticality]);
 
 
     return (
@@ -103,9 +155,21 @@ function MapView() {
 
                 <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution="© OpenStreetMap contributors" />
 
-                <Marker position={currentPosition}>
-                    <Popup>Here I am</Popup>
+                <Marker position={currentPosition} icon={ambulanceEmoji}>
+                    <Popup>
+                        <b>Ambulance</b><br />
+                        Criticality: {criticality}
+                    </Popup>
                 </Marker>
+
+                <Marker position={signalpos} icon={signalEmoji(signalState)}>
+                    <Popup>
+                        <b>Traffic Signal</b><br />
+                        State: {signalState}
+                    </Popup>
+                </Marker>
+
+
 
             </MapContainer>
         </div>
