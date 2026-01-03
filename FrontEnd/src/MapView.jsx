@@ -6,7 +6,7 @@ import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet'
 //all these are componets provided by react-leaflet library think react-leaftlet as a box and inside box we get mapcontainer and all etc.
 import "leaflet/dist/leaflet.css" //import things from nodemodules->leafletfolder->dist->leaflet.css tell how to preoply put marker where 
 import L from 'leaflet' //importing leaflet library as L do all deep logic work
-import { useState,useEffect } from 'react';
+import { useState, useEffect } from 'react';
 
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -35,55 +35,82 @@ function MapView() {
 
     ];
 
-    const [segmentIndex,setsegmentIndex] = useState(0);
-    const [progress,setProgress] = useState(0);
+    const [segmentIndex, setsegmentIndex] = useState(0);
+    const [progress, setProgress] = useState(0);
     const [currentPosition, setCurrentPosition] = useState(route[0]);
+    const [criticality, setCriticality] = useState("Critical");
 
 
-    useEffect(()=>{
+    useEffect(() => {
         const speed = 0.02;
-        const interval = setInterval(()=>{
-            const [lat1,lng1]  = route[segmentIndex];
-            const [lat2,lng2] = route[segmentIndex+1];
+        const interval = setInterval(() => {
+            const [lat1, lng1] = route[segmentIndex];
+            const [lat2, lng2] = route[segmentIndex + 1];
 
             const newProgress = progress + speed;
 
-            if(newProgress >= 1){
-                if(segmentIndex < route.length -2){
+            if (newProgress >= 1) {
+                if (segmentIndex < route.length - 2) {
                     setsegmentIndex(segmentIndex + 1);
                     setProgress(0);
                     setCurrentPosition(route[segmentIndex + 1]);
                 }
-                else{
+                else {
                     clearInterval(interval);
                 }
             }
-            else{
+            else {
                 setProgress(newProgress);
 
                 const lat = lat1 + (lat2 - lat1) * newProgress;
                 const lng = lng1 + (lng2 - lng1) * newProgress;
 
-                setCurrentPosition([lat,lng]);
+                setCurrentPosition([lat, lng]);
             }
 
-        },100);
+        }, 100);
 
         return () => clearInterval(interval);
-    },[segmentIndex,progress]);
+    }, [segmentIndex, progress]);
 
 
     return (
-        <MapContainer center={center} zoom={15} style={{ height: "100vh", width: "100vw" }}>
+        <div>
+            <div style={{
+                position: 'absolute',
+                top: 10,
+                left: 50,
+                zIndex: 1000,
+                background: "white",
+                padding: "10px",
+                borderRadius: "5px",
+                display: "flex",
+                flexDirection: "column",
+                gap: "5px",
+            }}>
+                <button onClick={() => {
+                    setCriticality("STABLE");
+                }}>STABLE</button>
+                <button onClick={() => {
+                    setCriticality("CRITICAL");
+                }}>CRITICAL</button>
+                <button onClick={() => {
+                    setCriticality("VERY CRITICAL");
+                }}>VERY CRITICAL</button>
 
-            <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution="© OpenStreetMap contributors" />
+            </div>
+            <MapContainer center={center} zoom={15} style={{ height: "100vh", width: "100vw" }}>
 
-            <Marker position={currentPosition}>
-                <Popup>Here I am</Popup>
-            </Marker>
+                <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution="© OpenStreetMap contributors" />
 
-        </MapContainer>
+                <Marker position={currentPosition}>
+                    <Popup>Here I am</Popup>
+                </Marker>
+
+            </MapContainer>
+        </div>
     )
+
 }
 
 export default MapView
