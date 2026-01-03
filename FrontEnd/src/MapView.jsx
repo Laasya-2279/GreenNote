@@ -25,7 +25,7 @@ function MapView() {
         [9.9916629, 76.3020623],
         [9.9922232, 76.3019409],
         [9.9923517, 76.3019267],
-        [9.9930340, 76.3018243],
+        // [9.9930340, 76.3018243],
         [9.9930340, 76.3018243],
         [9.9933433, 76.3017846],
         [9.9944848, 76.3016587],
@@ -35,26 +35,42 @@ function MapView() {
 
     ];
 
-    const [index, setIndex] = useState(0);
+    const [segmentIndex,setsegmentIndex] = useState(0);
+    const [progress,setProgress] = useState(0);
     const [currentPosition, setCurrentPosition] = useState(route[0]);
 
+
     useEffect(()=>{
+        const speed = 0.02;
         const interval = setInterval(()=>{
-            setIndex((prev) =>{
-                if(prev < route.length-1){
-                    setCurrentPosition(route[prev+1]);
-                    return prev + 1;
+            const [lat1,lng1]  = route[segmentIndex];
+            const [lat2,lng2] = route[segmentIndex+1];
+
+            const newProgress = progress + speed;
+
+            if(newProgress >= 1){
+                if(segmentIndex < route.length -2){
+                    setsegmentIndex(segmentIndex + 1);
+                    setProgress(0);
+                    setCurrentPosition(route[segmentIndex + 1]);
                 }
                 else{
                     clearInterval(interval);
-                    return prev;
                 }
-            })
-        },1000);
+            }
+            else{
+                setProgress(newProgress);
+
+                const lat = lat1 + (lat2 - lat1) * newProgress;
+                const lng = lng1 + (lng2 - lng1) * newProgress;
+
+                setCurrentPosition([lat,lng]);
+            }
+
+        },100);
 
         return () => clearInterval(interval);
-    },[]);
-
+    },[segmentIndex,progress]);
 
 
     return (
