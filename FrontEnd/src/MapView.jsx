@@ -1,4 +1,4 @@
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet'
+import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet'
 //Mapcontainer "is the main frame whole frame like a painting frame"
 //TitleLayer "this is used to fetch the streets and its labels like location"
 //Marker "this is used to mark a specific location on the map"
@@ -15,7 +15,6 @@ L.Icon.Default.mergeOptions({
     shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
 });
 
-// Emoji icon for the Traffic Signal
 const signalEmoji = (state) => L.divIcon({
     html: `<div style="font-size: 30px;">${state === "GREEN" ? "🟢" : "🔴"}</div>`,
     className: 'dummy',
@@ -23,7 +22,6 @@ const signalEmoji = (state) => L.divIcon({
     iconAnchor: [15, 15]
 });
 
-// Emoji icon for the Ambulance
 const ambulanceEmoji = L.divIcon({
     html: `<div style="font-size: 30px;">🚑</div>`,
     className: 'dummy',
@@ -35,6 +33,7 @@ const ambulanceEmoji = L.divIcon({
 function MapView() {
     const center = [9.9930419, 76.3017048]; // Jln stadium is what i gave
     const route = [
+        // [9.9930419, 76.3017048],
         [9.9908649, 76.3021516],
         [9.9911956, 76.3021332],
         [9.9916629, 76.3020623],
@@ -60,7 +59,7 @@ function MapView() {
     const getThresholdDistance = () => {
         if (criticality === "STABLE") return 40;
         if (criticality === "CRITICAL") return 80;
-        if (criticality === "VERY CRITICAL") return 120;
+        if (criticality === "VERY CRITICAL") return 200;
         return 60;
     }
 
@@ -125,6 +124,30 @@ function MapView() {
         return () => clearInterval(interval);
     }, [segmentIndex, progress, criticality]);
 
+    const getCorridorConfig = () => {
+        if (criticality === "STABLE") {
+            return { segment: 3, color: "green" };
+        }
+        if (criticality === "CRITICAL") {
+            return { segment: 2, color: "orange" };
+        }
+        if (criticality === "VERY CRITICAL") {
+            return { segment: 1, color: "red" };
+        }
+        return null;
+    }
+
+    const getCorridorPoints = () => {
+        const config = getCorridorConfig();
+        if(!config) return [];
+        const points = [];
+        points.push(currentPosition);
+        for(let i = segmentIndex+1; i <= segmentIndex + config.segment && i < route.length; i++){
+            points.push(route[i]);
+        }
+        return points;
+    }
+
 
     return (
         <div>
@@ -154,6 +177,10 @@ function MapView() {
             <MapContainer center={center} zoom={15} style={{ height: "100vh", width: "100vw" }}>
 
                 <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution="© OpenStreetMap contributors" />
+
+                {getCorridorConfig() && (
+                    <Polyline positions={getCorridorPoints()} pathOptions={{color : getCorridorConfig().color,weight:6,opacity:0.6}}/>
+                )}
 
                 <Marker position={currentPosition} icon={ambulanceEmoji}>
                     <Popup>
