@@ -25,7 +25,7 @@ const signalEmoji = (state) => L.divIcon({
 const ambulanceEmoji = L.divIcon({
     html: `<div style="font-size: 30px;">🚑</div>`,
     className: 'dummy',
-    iconSize: [30, 30],
+    iconSize: [30, 30], // Fixed height to 30 so icon is visible
     iconAnchor: [15, 15]
 });
 
@@ -126,34 +126,78 @@ function MapView() {
 
     const getCorridorConfig = () => {
         if (criticality === "STABLE") {
-            return { segment: 3, color: "green" };
+            return { color: "blue" }; // Added blue color here
         }
         if (criticality === "CRITICAL") {
-            return { segment: 2, color: "orange" };
+            return { color: "orange" };
         }
         if (criticality === "VERY CRITICAL") {
-            return { segment: 1, color: "red" };
+            return { color: "red" };
         }
         return null;
     }
 
     const getCorridorPoints = () => {
-        const config = getCorridorConfig();
-        if(!config) return [];
         const points = [];
         points.push(currentPosition);
-        for(let i = segmentIndex+1; i <= segmentIndex + config.segment && i < route.length; i++){
+
+        for (let i = segmentIndex + 1; i < route.length; i++) {
             points.push(route[i]);
         }
+
         return points;
+    };
+
+
+    const AMBULANCE_SPEED = 12; //meter btw
+
+    const geDelayTime = () => {
+        if (criticality === "STABLE") return 10;
+        if (criticality === "CRITICAL") return 5;
+        if (criticality === "VERY CRITICAL") return 2;
+        return 8;
+    }
+
+    const getDistance = () => {
+        let distance = 0;
+
+        if (segmentIndex < route.length - 1) {
+            const [nextLat, nextLng] = route[segmentIndex + 1];
+            distance += getDistanceInMeters(currentPosition[0], currentPosition[1], nextLat, nextLng);
+        }
+
+        for (let i = segmentIndex + 1; i < route.length - 1; i++) {
+            const [lat1, lng1] = route[i];
+            const [lat2, lng2] = route[i + 1];
+            distance += getDistanceInMeters(lat1, lng1, lat2, lng2);
+        }
+
+        return distance;
+    }
+
+    const ETAseconds = () => {
+        const remainingDistance = getDistance();
+
+        const travelTime = remainingDistance / AMBULANCE_SPEED;
+
+        const signalAhead = segmentIndex < route.length / 2 ? 1 : 0;
+        const delayTime = signalAhead * geDelayTime();
+
+        return Math.max(0, Math.round(travelTime + delayTime));
+    }
+
+    const formETA = (seconds) => {
+        const mins = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        return `${mins} mins ${secs} secs`;
     }
 
 
     return (
-        <div>
+        <div style={{ position: "relative" }}>
             <div style={{
                 position: 'absolute',
-                top: 10,
+                top: 40,
                 left: 50,
                 zIndex: 1000,
                 background: "white",
@@ -162,6 +206,7 @@ function MapView() {
                 display: "flex",
                 flexDirection: "column",
                 gap: "5px",
+                boxShadow: "0 2px 5px rgba(0,0,0,0.2)"
             }}>
                 <button onClick={() => {
                     setCriticality("STABLE");
@@ -173,13 +218,18 @@ function MapView() {
                     setCriticality("VERY CRITICAL");
                 }}>VERY CRITICAL</button>
 
+                <div style={{ color: "black", marginTop: "10px", fontWeight: "bold", borderTop: "1px solid #ddd", paddingTop: "5px" }}>
+                    ETA: {formETA(ETAseconds())}
+                </div>
+
             </div>
+
             <MapContainer center={center} zoom={15} style={{ height: "100vh", width: "100vw" }}>
 
                 <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution="© OpenStreetMap contributors" />
 
                 {getCorridorConfig() && (
-                    <Polyline positions={getCorridorPoints()} pathOptions={{color : getCorridorConfig().color,weight:6,opacity:0.6}}/>
+                    <Polyline positions={getCorridorPoints()} pathOptions={{ color: getCorridorConfig().color, weight: 6, opacity: 1 }} />
                 )}
 
                 <Marker position={currentPosition} icon={ambulanceEmoji}>
@@ -204,4 +254,4 @@ function MapView() {
 
 }
 
-export default MapView
+export default MapView;
