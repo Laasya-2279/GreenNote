@@ -46,8 +46,13 @@ function MapView() {
         [9.9954740, 76.3014861],
         [9.9960327, 76.3013843],
 
-
     ];
+
+    const routeLisieHospital = [];
+    const routePVSHospital = [];
+    const routeAsterMedcity = [];
+    const routeKIMSHospital = [];
+    const routeRenaiMedicity = [];
 
     const [segmentIndex, setsegmentIndex] = useState(0);
     const [progress, setProgress] = useState(0);
@@ -191,6 +196,35 @@ function MapView() {
         const secs = seconds % 60;
         return `${mins} mins ${secs} secs`;
     }
+
+    const hospitalRoutes = [
+        {
+            id : "H1",
+            name : "Lisie Hospital",
+            route : routeLisieHospital
+
+        },
+        {
+            id : "H2",
+            name : "PVS Memorial Hospital",
+            route : routePVSHospital
+        },
+        {
+            id : "H3",
+            name : "Aster Medcity",
+            route : routeAsterMedcity
+        },
+        {
+            id : "H4",
+            name : "KIMS Hospital",
+            route : routeKIMSHospital
+        },
+        {
+            id : "H5",
+            name : "Renai Medicity",
+            route : routeRenaiMedicity
+        }
+    ]
 
 
     return (
