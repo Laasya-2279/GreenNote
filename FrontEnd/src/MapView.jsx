@@ -48,7 +48,12 @@ function MapView() {
     const [initialETA, setInitialETA] = useState(null);
     const [startTime, setStartTime] = useState(null);
     const [etaLogged, setEtaLogged] = useState(false);
-    const [etaBias, setEtaBias] = useState(0);
+    // const [etaBias, setEtaBias] = useState(0);
+    const [etaBias, setEtaBias] = useState({
+        morning: 0,
+        afternoon: 0,
+        night: 0
+    });
     const ARRIVAL_THRESHOLD_METERS = 15;
     const [arrived, setArrived] = useState(false);
     const [route, setRoute] = useState(defaultRoute); // Track current active route
@@ -63,6 +68,7 @@ function MapView() {
         // { id: 4, position: [9.994999, 76.292152], state: "RED"},
         { id: 4, position: [9.985764, 76.281511], state: "RED" },
     ]);
+    const [hospitalETAs, setHospitalETAs] = useState([]);
 
 
 
@@ -577,7 +583,7 @@ function MapView() {
         [10.000502, 76.299479],
         [10.000481, 76.299412],
         [10.000484, 76.299384],
-        [10.000425, 76.299296], 
+        [10.000425, 76.299296],
         [9.999999, 76.298640],
         [9.999942, 76.298569],
         [9.999890, 76.298492],
@@ -736,11 +742,37 @@ function MapView() {
         const error = actualTime - initialETA;
 
         const learningRate = 0.2;
-        setEtaBias(prev => prev + learningRate * error);
+        const bucket = getTimeBucket();
+
+        setEtaBias(prev => {
+            const updated = {
+                ...prev,
+                [bucket]: prev[bucket] + learningRate * error
+            };
+
+            const global =
+                JSON.parse(localStorage.getItem("globalModel")) || {
+                    morning: 0,
+                    afternoon: 0,
+                    night: 0,
+                    samples: { morning: 0, afternoon: 0, night: 0 }
+                };
+
+            global[bucket] =
+                (global[bucket] * global.samples[bucket] + updated[bucket])
+                / (global.samples[bucket] + 1);
+
+            global.samples[bucket] += 1;
+            localStorage.setItem("globalModel", JSON.stringify(global));
+
+            return updated;
+        });
+
         setEtaLogged(true);
 
-        console.log({ initialETA, actualTime, error });
+        console.log({ initialETA, actualTime, error, bucket });
     }, [arrived]);
+
 
 
     const hospitalRoutes = [
@@ -891,8 +923,14 @@ function MapView() {
         const redSignalsAhead = getRedSignalsAheadCount();
         const signalDelay = redSignalsAhead * geDelayTime();
 
-        return Math.max(0, Math.round(travelTime + signalDelay + etaBias));
+        const bucket = getTimeBucket();
+
+        return Math.max(
+            0,
+            Math.round(travelTime + signalDelay + etaBias[bucket])
+        );
     };
+
 
 
     const formETA = (seconds) => {
@@ -910,17 +948,29 @@ function MapView() {
 
     const autoSelectNearestHospital = () => {
         let nearestHospital = null;
-        let minDistance = Infinity;
+        let bestETA = Infinity;
+        const global = JSON.parse(localStorage.getItem("globalModel"));
+        const biasToUse = global ? {
+            morning: global.morning,
+            afternoon: global.afternoon,
+            night: global.night
+        } : etaBias;
 
-        setSignals(prev =>
-            prev.map(signal => ({ ...signal, state: "RED" }))
-        );
+        if (global) {
+            setEtaBias(biasToUse);
+        }
 
+        const etaList = hospitalRoutes.map(h => ({
+            id: h.id,
+            name: h.name,
+            eta: computeETAForRoute(h.route, biasToUse)
+        }));
+        setHospitalETAs(etaList);
 
         hospitalRoutes.forEach(hospital => {
-            const distance = getHospitalDistance(hospital);
-            if (distance < minDistance) {
-                minDistance = distance;
+            const eta = computeETAForRoute(hospital.route, biasToUse);
+            if (eta < bestETA) {
+                bestETA = eta;
                 nearestHospital = hospital;
             }
         });
@@ -930,28 +980,54 @@ function MapView() {
             return;
         }
 
-        if (nearestHospital) {
-            setSelectedHospital(nearestHospital);
-            setRoute(nearestHospital.route);
-            setsegmentIndex(0);
-            setProgress(0);
-            setCurrentPosition(nearestHospital.route[0]);
+        setSelectedHospital(nearestHospital);
+        setRoute(nearestHospital.route);
+        setsegmentIndex(0);
+        setProgress(0);
+        setCurrentPosition(nearestHospital.route[0]);
 
-            let totalD = 0;
-            for (let i = 0; i < nearestHospital.route.length - 1; i++) {
-                totalD += getDistanceInMeters(
-                    nearestHospital.route[i][0], nearestHospital.route[i][1],
-                    nearestHospital.route[i + 1][0], nearestHospital.route[i + 1][1]
-                );
-            }
-
-            const initialTravelTime = totalD / AMBULANCE_SPEED;
-            setInitialETA(Math.round(initialTravelTime));
-            setStartTime(Date.now());
-            setEtaLogged(false);
+        let totalD = 0;
+        for (let i = 0; i < nearestHospital.route.length - 1; i++) {
+            totalD += getDistanceInMeters(
+                nearestHospital.route[i][0], nearestHospital.route[i][1],
+                nearestHospital.route[i + 1][0], nearestHospital.route[i + 1][1]
+            );
         }
 
+        const initialTravelTime = totalD / AMBULANCE_SPEED;
+        setInitialETA(Math.round(initialTravelTime));
+        setStartTime(Date.now());
+        setArrived(false);
+        setEtaLogged(false);
     };
+
+    const computeETAForRoute = (testRoute, bias = etaBias) => {
+        if (!testRoute || testRoute.length < 2) return Infinity;
+
+        let distance = 0;
+        for (let i = 0; i < testRoute.length - 1; i++) {
+            distance += getDistanceInMeters(
+                testRoute[i][0], testRoute[i][1],
+                testRoute[i + 1][0], testRoute[i + 1][1]
+            );
+        }
+
+        const travelTime = distance / AMBULANCE_SPEED;
+        const signalDelay =
+            signals.filter(s => s.state === "RED").length * geDelayTime();
+
+        const bucket = getTimeBucket();
+        return Math.round(travelTime + signalDelay + bias[bucket]);
+    };
+
+    const getTimeBucket = () => {
+        const h = new Date().getHours();
+        if (h < 10) return "morning";
+        if (h < 18) return "afternoon";
+        return "night";
+    };
+
+
 
 
     return (
@@ -967,7 +1043,9 @@ function MapView() {
                 display: "flex",
                 flexDirection: "column",
                 gap: "5px",
-                boxShadow: "0 2px 5px rgba(0,0,0,0.2)"
+                boxShadow: "0 2px 5px rgba(0,0,0,0.2)",
+                maxHeight: "90vh",
+                overflowY: "auto"
             }}>
                 <button onClick={() => setCriticality("STABLE")}>STABLE</button>
                 <button onClick={() => setCriticality("CRITICAL")}>CRITICAL</button>
@@ -976,6 +1054,26 @@ function MapView() {
                 <div style={{ color: "black", marginTop: "10px", fontWeight: "bold", borderTop: "1px solid #ddd", paddingTop: "5px" }}>
                     ETA: {formETA(ETAseconds())}
                 </div>
+                {hospitalETAs.length > 0 && (
+                    <div style={{ marginTop: "10px", fontSize: "13px" }}>
+                        <b>Hospital ETAs</b>
+                        {hospitalETAs.map(h => (
+                            <div
+                                key={h.id}
+                                style={{
+                                    color: selectedHospital?.id === h.id ? "green" : "black",
+                                    fontWeight: selectedHospital?.id === h.id ? "bold" : "normal"
+                                }}
+                            >
+                                {h.name}: {formETA(h.eta)}
+                            </div>
+                        ))}
+                    </div>
+                )}
+                <div style={{ fontSize: "12px", marginTop: "5px", color:'black'}}>
+                    Time bucket: {getTimeBucket()}
+                </div>
+
 
                 <button
                     style={{ background: "#1976d2", color: "white", fontWeight: "bold", marginTop: "5px", cursor: "pointer" }}
