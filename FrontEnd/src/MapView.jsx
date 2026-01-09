@@ -25,14 +25,16 @@ const signalEmoji = (state) => L.divIcon({
 const ambulanceEmoji = L.divIcon({
     html: `<div style="font-size: 30px;">🚑</div>`,
     className: 'dummy',
-    iconSize: [30, 30], 
+    iconSize: [30, 30],
     iconAnchor: [15, 15]
 });
 
 
 function MapView() {
     const center = [9.9930419, 76.3017048]; // Jln stadium is what i gave
-    
+    const [selectedHospital, setSelectedHospital] = useState(null);
+
+
     // Default route
     const defaultRoute = [
         [9.9908649, 76.3021516],
@@ -314,7 +316,7 @@ function MapView() {
         [10.043896, 76.275266],
         [10.043919, 76.275300],
         [10.043940, 76.275320],
-        [10.043928, 76.275343],[10.043922, 76.275380],[10.043917, 76.275415],[10.043917, 76.275490],[10.043920, 76.275575],
+        [10.043928, 76.275343], [10.043922, 76.275380], [10.043917, 76.275415], [10.043917, 76.275490], [10.043920, 76.275575],
         [10.043922, 76.275661],
         [10.043938, 76.275750],
         [10.043965, 76.275878],
@@ -339,7 +341,7 @@ function MapView() {
     const [route, setRoute] = useState(defaultRoute); // Track current active route
     const [segmentIndex, setsegmentIndex] = useState(0);
     const [progress, setProgress] = useState(0);
-    const [currentPosition, setCurrentPosition] = useState(defaultRoute[0]);
+    const [currentPosition, setCurrentPosition] = useState(center);
     const [criticality, setCriticality] = useState("CRITICAL");
     const [signalState, setsignalState] = useState("RED");
     const signalpos = [9.9933433, 76.3017846];
@@ -356,14 +358,15 @@ function MapView() {
         const dLat = (lat2 - lat1) * Math.PI / 180;
         const dLon = (lon2 - lon1) * Math.PI / 180;
         const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-                  Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-                  Math.sin(dLon / 2) * Math.sin(dLon / 2);
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLon / 2) * Math.sin(dLon / 2);
         const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
         return R * c;
     };
 
 
     useEffect(() => {
+        if (!route || route.length < 2) return;
         const speed = 0.02;
         const interval = setInterval(() => {
             if (segmentIndex >= route.length - 1) return;
@@ -416,7 +419,7 @@ function MapView() {
         return points;
     };
 
-    const AMBULANCE_SPEED = 12; 
+    const AMBULANCE_SPEED = 12;
 
     const geDelayTime = () => {
         if (criticality === "STABLE") return 10;
@@ -449,7 +452,6 @@ function MapView() {
         return `${mins} mins ${secs} secs`;
     }
 
-    // Fixed Bug: Accessing correct hospital object properties
     const getHospitalDistance = (hospital) => {
         if (!hospital.route || hospital.route.length === 0) return Infinity;
         const [hLat, hLng] = hospital.route[hospital.route.length - 1];
@@ -460,6 +462,7 @@ function MapView() {
     const autoSelectNearestHospital = () => {
         let nearestHospital = null;
         let minDistance = Infinity;
+        setsignalState("RED");
 
         hospitalRoutes.forEach(hospital => {
             const distance = getHospitalDistance(hospital);
@@ -469,65 +472,66 @@ function MapView() {
             }
         });
 
-        if (nearestHospital) {
-            setRoute(nearestHospital.route);
-            setsegmentIndex(0);
-            setProgress(0);
-            setCurrentPosition(nearestHospital.route[0]);
-            alert(`Selected: ${nearestHospital.name}`);
-        } else {
+        if (!nearestHospital || nearestHospital.route.length < 2) {
             alert("No valid hospital routes found.");
+            return;
         }
-    };
 
-    return (
-        <div style={{ position: "relative" }}>
-            <div style={{
-                position: 'absolute',
-                top: 40,
-                left: 50,
-                zIndex: 1000,
-                background: "white",
-                padding: "10px",
-                borderRadius: "5px",
-                display: "flex",
-                flexDirection: "column",
-                gap: "5px",
-                boxShadow: "0 2px 5px rgba(0,0,0,0.2)"
-            }}>
-                <button onClick={() => setCriticality("STABLE")}>STABLE</button>
-                <button onClick={() => setCriticality("CRITICAL")}>CRITICAL</button>
-                <button onClick={() => setCriticality("VERY CRITICAL")}>VERY CRITICAL</button>
+        setSelectedHospital(nearestHospital);
+        setRoute(nearestHospital.route);
+        setsegmentIndex(0);
+        setProgress(0);
+        setCurrentPosition(nearestHospital.route[0]);
+};
 
-                <div style={{ color: "black", marginTop: "10px", fontWeight: "bold", borderTop: "1px solid #ddd", paddingTop: "5px" }}>
-                    ETA: {formETA(ETAseconds())}
-                </div>
-                
-                <button
-                    style={{ background: "#1976d2", color: "white", fontWeight: "bold", marginTop: "5px", cursor: "pointer" }}
-                    onClick={autoSelectNearestHospital}
-                >
-                    AUTO SELECT NEAREST
-                </button>
+return (
+    <div style={{ position: "relative" }}>
+        <div style={{
+            position: 'absolute',
+            top: 40,
+            left: 50,
+            zIndex: 1000,
+            background: "white",
+            padding: "10px",
+            borderRadius: "5px",
+            display: "flex",
+            flexDirection: "column",
+            gap: "5px",
+            boxShadow: "0 2px 5px rgba(0,0,0,0.2)"
+        }}>
+            <button onClick={() => setCriticality("STABLE")}>STABLE</button>
+            <button onClick={() => setCriticality("CRITICAL")}>CRITICAL</button>
+            <button onClick={() => setCriticality("VERY CRITICAL")}>VERY CRITICAL</button>
+
+            <div style={{ color: "black", marginTop: "10px", fontWeight: "bold", borderTop: "1px solid #ddd", paddingTop: "5px" }}>
+                ETA: {formETA(ETAseconds())}
             </div>
 
-            <MapContainer center={center} zoom={15} style={{ height: "100vh", width: "100vw" }}>
-                <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution="© OpenStreetMap" />
-                
-                {getCorridorConfig() && (
-                    <Polyline positions={getCorridorPoints()} pathOptions={{ color: getCorridorConfig().color, weight: 6, opacity: 1 }} />
-                )}
-
-                <Marker position={currentPosition} icon={ambulanceEmoji}>
-                    <Popup><b>Ambulance</b><br />Criticality: {criticality}</Popup>
-                </Marker>
-
-                <Marker position={signalpos} icon={signalEmoji(signalState)}>
-                    <Popup><b>Traffic Signal</b><br />State: {signalState}</Popup>
-                </Marker>
-            </MapContainer>
+            <button
+                style={{ background: "#1976d2", color: "white", fontWeight: "bold", marginTop: "5px", cursor: "pointer" }}
+                onClick={autoSelectNearestHospital}
+            >
+                AUTO SELECT NEAREST
+            </button>
         </div>
-    )
+
+        <MapContainer center={center} zoom={15} style={{ height: "100vh", width: "100vw" }}>
+            <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution="© OpenStreetMap" />
+
+            {getCorridorConfig() && (
+                <Polyline positions={getCorridorPoints()} pathOptions={{ color: getCorridorConfig().color, weight: 6, opacity: 1 }} />
+            )}
+
+            <Marker position={currentPosition} icon={ambulanceEmoji}>
+                <Popup><b>Ambulance</b><br />Criticality: {criticality}</Popup>
+            </Marker>
+
+            <Marker position={signalpos} icon={signalEmoji(signalState)}>
+                <Popup><b>Traffic Signal</b><br />State: {signalState}</Popup>
+            </Marker>
+        </MapContainer>
+    </div>
+)
 }
 
 export default MapView;
