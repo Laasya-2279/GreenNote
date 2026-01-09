@@ -330,12 +330,14 @@ function MapView() {
         [10.043952, 76.276458]
     ];
 
+    const 
+
     const hospitalRoutes = [
-        { id: "H1", name: "Lisie Hospital", route: [] },
-        { id: "H2", name: "PVS Memorial Hospital", route: [] },
+        { id: "H1", name: "Lisie Hospital", route: routeLisie },
+        // { id: "H2", name: "PVS Memorial Hospital", route: [] },
         { id: "H3", name: "Aster Medcity", route: routeAsterMedcity },
-        { id: "H4", name: "KIMS Hospital", route: [] },
-        { id: "H5", name: "Renai Medicity", route: [] }
+        // { id: "H4", name: "KIMS Hospital", route: [] },
+        { id: "H5", name: "Renai Medicity", route: routeRennai }
     ];
 
     const [route, setRoute] = useState(defaultRoute); // Track current active route
