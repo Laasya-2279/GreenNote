@@ -330,7 +330,13 @@ function MapView() {
         [10.043952, 76.276458]
     ];
 
-    const 
+    const routeLisie = [
+
+    ]
+
+    const routeRennai = [
+        
+    ]
 
     const hospitalRoutes = [
         { id: "H1", name: "Lisie Hospital", route: routeLisie },
