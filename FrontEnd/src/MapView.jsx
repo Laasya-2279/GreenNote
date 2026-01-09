@@ -33,7 +33,14 @@ const ambulanceEmoji = L.divIcon({
 function MapView() {
     const center = [9.9930419, 76.3017048]; // Jln stadium is what i gave
     const [selectedHospital, setSelectedHospital] = useState(null);
+    const [initialETA, setInitialETA] = useState(null);
+    const [startTime, setStartTime] = useState(null);
+    const [etaLogged, setEtaLogged] = useState(false);
+    const [etaBias, setEtaBias] = useState(0);
+    const ARRIVAL_THRESHOLD_METERS = 5;
 
+
+    // const signalpos = [...];
 
     // Default route
     const defaultRoute = [
@@ -331,12 +338,126 @@ function MapView() {
     ];
 
     const routeLisie = [
+        [9.9908649, 76.3021516],
+        [9.9911956, 76.3021332],
+        [9.9916629, 76.3020623],
+        [9.9922232, 76.3019409],
+        [9.9923517, 76.3019267],
+        [9.9930340, 76.3018243],
+        [9.9933433, 76.3017846],
+        [9.9944848, 76.3016587],
+        [9.9954740, 76.3014861],
+        [9.9960327, 76.3013843],
+        [9.995949, 76.301045],
+        [9.995984, 76.300702],
+        [9.996049, 76.300507],
+        [9.996170, 76.300286],
+        [9.996393, 76.300069],
+        [9.996601, 76.299934],
+        [9.996774, 76.299817],
+        [9.996932, 76.299788],
+        [9.997055, 76.299734],
+        [9.997190, 76.299701],
+        [9.997459, 76.299668],
+        [9.997637, 76.299723],
+        [9.997809, 76.299777],
+        [9.997974, 76.299850],
+        [9.998127, 76.299928],
+        [9.998211, 76.300093],
+        [9.998417, 76.300106],
+        [9.998593, 76.300155],
+        [9.998847, 76.300200],
+        [9.999005, 76.300155],
+        [9.999190, 76.300075],
+        [9.999422, 76.300012],
+        [9.999607, 76.299932],
+        [9.999767, 76.299871],
+        [10.000012, 76.299828],
+        [10.000273, 76.299730],
+        [10.000505, 76.299541],
+        [10.000501, 76.299491],
+        [10.000501, 76.299449],
+        [10.000494, 76.299395],
+        [10.000481, 76.299358],
+        [10.000428, 76.299286],
+        [10.000388, 76.299206],
+        [10.000339, 76.299124],
+        [10.000291, 76.299052],
+        [10.000237, 76.298974],
+        [10.000187, 76.298901],
+        [10.000127, 76.298830],
+        [10.000082, 76.298750],
+        [10.000044, 76.298720],
+        [9.999999, 76.298640],
+        [9.999942, 76.298569],
+        [9.999890, 76.298492],
+        [9.999840, 76.298418],
+        [9.999800, 76.298350],
+        [9.999752, 76.298277],
+        [9.999709, 76.298195],
+        [9.999653, 76.298121],
+        [9.999604, 76.298046],
+        [9.999553, 76.297969],
+        [9.999494, 76.297899],
+        [9.999440, 76.297826],
+        [9.999388, 76.297754],
+        [9.999338, 76.297684],
+        [9.999308, 76.297643],
+        [9.999050, 76.297395],
+        [9.998701, 76.296933],
+        [9.998461, 76.296715],
+        [9.998151, 76.296272],
+        [9.997899, 76.295942],
+        [9.997535, 76.295483],
+        [9.997184, 76.295091],
+        [9.996841, 76.294657],
+        [9.996584, 76.294248],
+        [9.996214, 76.293760],
+        [9.995830, 76.293217],
+        [9.995488, 76.292784],
+        [9.995261, 76.292505],
+        [9.994999, 76.292152], //junction
+        [9.994522, 76.291710],
+        [9.994255, 76.291447],
+        [9.993959, 76.291144],
+        [9.993594, 76.290828],
+        [9.993282, 76.290505],
+        [9.992954, 76.290205],
+        [9.992637, 76.289848],
+        [9.992308, 76.289544], //juntion
+        [9.992013, 76.289158],
+        [9.991697, 76.288828],
+        [9.991345, 76.288409],
+        [9.991167, 76.288159],
+        [9.990960, 76.287916],
+        [9.990943, 76.287892],
+        [9.990926, 76.287882],
+        [9.990900, 76.287883],
+        [9.990806, 76.287930],
+        [9.990567, 76.288044],
+        [9.990142, 76.288229],
+        [9.989760, 76.288393],
+        [9.989333, 76.288536],
+        [9.989032, 76.288637],
+        [9.989014, 76.288632],
+        [9.988995, 76.288633],
+        [9.988975, 76.288592],
+        [9.988939, 76.288533],
+        [9.988925, 76.288512],
+        [9.988907, 76.288507],
+        [9.988893, 76.288516],
+        [9.988881, 76.288513],
+        [9.988870, 76.288516],
+        [9.988857, 76.288509],
+        [9.988844, 76.288454],
+        [9.988841, 76.288397],
+        [9.988836, 76.288385],
+        [9.988826, 76.288375],
+        [9.988078, 76.288166]
 
     ]
 
-    const routeRennai = [
-        
-    ]
+    const routeRennai = []
 
     const hospitalRoutes = [
         { id: "H1", name: "Lisie Hospital", route: routeLisie },
@@ -351,8 +472,12 @@ function MapView() {
     const [progress, setProgress] = useState(0);
     const [currentPosition, setCurrentPosition] = useState(center);
     const [criticality, setCriticality] = useState("CRITICAL");
-    const [signalState, setsignalState] = useState("RED");
-    const signalpos = [9.9933433, 76.3017846];
+    const [signals, setSignals] = useState([
+        { id: 1, position: [9.994999, 76.292152], state: "RED" },
+        { id: 2, position: [9.992308, 76.289544], state: "RED" },
+        { id: 3, position: [9.9954740, 76.3014861], state: "RED" }
+    ]);
+
 
     const getThresholdDistance = () => {
         if (criticality === "STABLE") return 40;
@@ -372,12 +497,41 @@ function MapView() {
         return R * c;
     };
 
+    const hasArrived = () => {
+        if (!route || route.length === 0) return false;
+
+        const [endLat, endLng] = route[route.length - 1];
+        const [curLat, curLng] = currentPosition;
+
+        return getDistanceInMeters(curLat, curLng, endLat, endLng) <= ARRIVAL_THRESHOLD_METERS;
+    };
+
+
 
     useEffect(() => {
         if (!route || route.length < 2) return;
-        const speed = 0.02;
+        const speed = 0.15;
         const interval = setInterval(() => {
-            if (segmentIndex >= route.length - 1) return;
+            if (segmentIndex >= route.length - 1) {
+                clearInterval(interval);
+                
+                if (!etaLogged && startTime && initialETA !== null) {
+                    const actualTime = Math.round((Date.now() - startTime) / 1000);
+                    const error = actualTime - initialETA;
+
+                    console.log("ETA predicted:", initialETA, "secs");
+                    console.log("Actual travel time:", actualTime, "secs");
+                    console.log("ETA error:", error, "secs");
+
+                    const learningRate = 0.2;
+                    setEtaBias(prev => prev + learningRate * error);
+
+                    console.log("Updated ETA bias:", etaBias + learningRate * error);
+
+                    setEtaLogged(true);
+                }
+                return;
+            }
 
             const [lat1, lng1] = route[segmentIndex];
             const [lat2, lng2] = route[segmentIndex + 1];
@@ -386,16 +540,10 @@ function MapView() {
             let lat, lng;
 
             if (newProgress >= 1) {
-                if (segmentIndex < route.length - 2) {
-                    setsegmentIndex(segmentIndex + 1);
-                    setProgress(0);
-                    setCurrentPosition(route[segmentIndex + 1]);
-                    [lat, lng] = route[segmentIndex + 1];
-                }
-                else {
-                    clearInterval(interval);
-                    return;
-                }
+                setsegmentIndex(segmentIndex + 1);
+                setProgress(0);
+                setCurrentPosition(route[segmentIndex + 1]);
+                [lat, lng] = route[segmentIndex + 1];
             }
             else {
                 setProgress(newProgress);
@@ -404,13 +552,27 @@ function MapView() {
                 setCurrentPosition([lat, lng]);
             }
 
-            const distanceToSignal = getDistanceInMeters(lat, lng, signalpos[0], signalpos[1]);
-            const threshold = getThresholdDistance();
-            setsignalState(distanceToSignal <= threshold ? "GREEN" : "RED");
+            setSignals(prevSignals =>
+                prevSignals.map(signal => {
+                    const distance = getDistanceInMeters(
+                        lat,
+                        lng,
+                        signal.position[0],
+                        signal.position[1]
+                    );
+
+                    const threshold = getThresholdDistance();
+
+                    return {
+                        ...signal,
+                        state: distance <= threshold ? "GREEN" : "RED"
+                    };
+                })
+            );
         }, 100);
 
         return () => clearInterval(interval);
-    }, [segmentIndex, progress, criticality, route]);
+    }, [segmentIndex, progress, criticality, route, etaLogged, startTime, initialETA, etaBias]);
 
     const getCorridorConfig = () => {
         if (criticality === "STABLE") return { color: "blue" };
@@ -447,12 +609,33 @@ function MapView() {
         return distance;
     }
 
+    const getRedSignalsAheadCount = () => {
+        let count = 0;
+        const remainingDistance = getDistance();
+
+        signals.forEach(signal => {
+            const distanceToSignal = getDistanceInMeters(
+                currentPosition[0], currentPosition[1],
+                signal.position[0], signal.position[1]
+            );
+
+            if (distanceToSignal <= remainingDistance && signal.state === "RED") {
+                count++;
+            }
+        });
+        return count;
+    };
+
     const ETAseconds = () => {
         const remainingDistance = getDistance();
         const travelTime = remainingDistance / AMBULANCE_SPEED;
-        const signalAhead = segmentIndex < route.length / 2 ? 1 : 0;
-        return Math.max(0, Math.round(travelTime + (signalAhead * geDelayTime())));
-    }
+
+        const redSignalsAhead = getRedSignalsAheadCount();
+        const signalDelay = redSignalsAhead * geDelayTime();
+
+        return Math.max(0, Math.round(travelTime + signalDelay + etaBias));
+    };
+
 
     const formETA = (seconds) => {
         const mins = Math.floor(seconds / 60);
@@ -470,7 +653,11 @@ function MapView() {
     const autoSelectNearestHospital = () => {
         let nearestHospital = null;
         let minDistance = Infinity;
-        setsignalState("RED");
+        
+        setSignals(prev =>
+            prev.map(signal => ({ ...signal, state: "RED" }))
+        );
+
 
         hospitalRoutes.forEach(hospital => {
             const distance = getHospitalDistance(hospital);
@@ -485,61 +672,87 @@ function MapView() {
             return;
         }
 
-        setSelectedHospital(nearestHospital);
-        setRoute(nearestHospital.route);
-        setsegmentIndex(0);
-        setProgress(0);
-        setCurrentPosition(nearestHospital.route[0]);
-};
+        if (nearestHospital) {
+            setSelectedHospital(nearestHospital);
+            setRoute(nearestHospital.route);
+            setsegmentIndex(0);
+            setProgress(0);
+            setCurrentPosition(nearestHospital.route[0]);
 
-return (
-    <div style={{ position: "relative" }}>
-        <div style={{
-            position: 'absolute',
-            top: 40,
-            left: 50,
-            zIndex: 1000,
-            background: "white",
-            padding: "10px",
-            borderRadius: "5px",
-            display: "flex",
-            flexDirection: "column",
-            gap: "5px",
-            boxShadow: "0 2px 5px rgba(0,0,0,0.2)"
-        }}>
-            <button onClick={() => setCriticality("STABLE")}>STABLE</button>
-            <button onClick={() => setCriticality("CRITICAL")}>CRITICAL</button>
-            <button onClick={() => setCriticality("VERY CRITICAL")}>VERY CRITICAL</button>
+            let totalD = 0;
+            for (let i = 0; i < nearestHospital.route.length - 1; i++) {
+                totalD += getDistanceInMeters(
+                    nearestHospital.route[i][0], nearestHospital.route[i][1],
+                    nearestHospital.route[i + 1][0], nearestHospital.route[i + 1][1]
+                );
+            }
 
-            <div style={{ color: "black", marginTop: "10px", fontWeight: "bold", borderTop: "1px solid #ddd", paddingTop: "5px" }}>
-                ETA: {formETA(ETAseconds())}
+            const initialTravelTime = totalD / AMBULANCE_SPEED;
+            setInitialETA(Math.round(initialTravelTime)); 
+            setStartTime(Date.now());
+            setEtaLogged(false);
+        }
+
+    };
+
+
+    return (
+        <div style={{ position: "relative" }}>
+            <div style={{
+                position: 'absolute',
+                top: 40,
+                left: 50,
+                zIndex: 1000,
+                background: "white",
+                padding: "10px",
+                borderRadius: "5px",
+                display: "flex",
+                flexDirection: "column",
+                gap: "5px",
+                boxShadow: "0 2px 5px rgba(0,0,0,0.2)"
+            }}>
+                <button onClick={() => setCriticality("STABLE")}>STABLE</button>
+                <button onClick={() => setCriticality("CRITICAL")}>CRITICAL</button>
+                <button onClick={() => setCriticality("VERY CRITICAL")}>VERY CRITICAL</button>
+
+                <div style={{ color: "black", marginTop: "10px", fontWeight: "bold", borderTop: "1px solid #ddd", paddingTop: "5px" }}>
+                    ETA: {formETA(ETAseconds())}
+                </div>
+
+                <button
+                    style={{ background: "#1976d2", color: "white", fontWeight: "bold", marginTop: "5px", cursor: "pointer" }}
+                    onClick={autoSelectNearestHospital}
+                >
+                    AUTO SELECT NEAREST
+                </button>
             </div>
 
-            <button
-                style={{ background: "#1976d2", color: "white", fontWeight: "bold", marginTop: "5px", cursor: "pointer" }}
-                onClick={autoSelectNearestHospital}
-            >
-                AUTO SELECT NEAREST
-            </button>
+            <MapContainer center={center} zoom={15} style={{ height: "100vh", width: "100vw" }}>
+                <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution="© OpenStreetMap" />
+
+                {getCorridorConfig() && (
+                    <Polyline positions={getCorridorPoints()} pathOptions={{ color: getCorridorConfig().color, weight: 6, opacity: 1 }} />
+                )}
+
+                <Marker position={currentPosition} icon={ambulanceEmoji}>
+                    <Popup><b>Ambulance</b><br />Criticality: {criticality}</Popup>
+                </Marker>
+
+                {signals.map(signal => (
+                    <Marker
+                        key={signal.id}
+                        position={signal.position}
+                        icon={signalEmoji(signal.state)}
+                    >
+                        <Popup>
+                            <b>Traffic Signal</b><br />
+                            State: {signal.state}
+                        </Popup>
+                    </Marker>
+                ))}
+            </MapContainer>
         </div>
-
-        <MapContainer center={center} zoom={15} style={{ height: "100vh", width: "100vw" }}>
-            <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution="© OpenStreetMap" />
-
-            {getCorridorConfig() && (
-                <Polyline positions={getCorridorPoints()} pathOptions={{ color: getCorridorConfig().color, weight: 6, opacity: 1 }} />
-            )}
-
-            <Marker position={currentPosition} icon={ambulanceEmoji}>
-                <Popup><b>Ambulance</b><br />Criticality: {criticality}</Popup>
-            </Marker>
-
-            <Marker position={signalpos} icon={signalEmoji(signalState)}>
-                <Popup><b>Traffic Signal</b><br />State: {signalState}</Popup>
-            </Marker>
-        </MapContainer>
-    </div>
-)
+    )
 }
 
 export default MapView;
